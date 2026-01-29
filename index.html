@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAG Database Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #fffef9;
+            --bg-paper: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a4a4a;
+            --text-muted: #767676;
+            --accent-blue: #2563eb;
+            --accent-red: #b91c1c;
+            --border-color: #d4d4d4;
+            --border-light: #e8e8e8;
+            --highlight: #fef9c3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Crimson Pro', 'Times New Roman', Times, serif;
+            background: var(--bg-page);
+            color: var(--text-primary);
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        /* Page container - like a LaTeX document */
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            background: var(--bg-paper);
+            min-height: 100vh;
+            box-shadow: 0 0 40px rgba(0,0,0,0.08);
+        }
+
+        /* Title block */
+        .title-block {
+            text-align: center;
+            margin-bottom: 48px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .title-block h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .title-block .subtitle {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .title-block .metadata {
+            margin-top: 20px;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .title-block .metadata span {
+            margin: 0 12px;
+        }
+
+        /* Stats Panels */
+        .stats-panels {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-panel {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            padding: 24px 16px;
+            text-align: center;
+        }
+
+        .stat-panel .stat-value {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 2.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-panel .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 8px;
+        }
+
+        /* Citation Block */
+        .citation-block {
+            background: var(--bg-page);
+            border-left: 3px solid var(--text-primary);
+            padding: 16px 20px;
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+        }
+
+        .citation-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .citation-text {
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .citation-text a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .citation-text a:hover {
+            text-decoration: underline;
+        }
+
+        .citation-context {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Section headers - LaTeX style */
+        .section-header {
+            font-size: 1.375rem;
+            font-weight: 700;
+            margin: 40px 0 20px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid var(--text-primary);
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .section-number {
+            font-weight: 700;
+        }
+
+        /* Navigation - tab style but minimal */
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 32px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            color: var(--text-primary);
+            font-weight: 600;
+            border-bottom-color: var(--text-primary);
+        }
+
+        /* Tab content */
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Search and filters */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 14px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-paper);
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--text-primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .filter-select {
+            padding: 10px 14px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-paper);
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--text-primary);
+        }
+
+        .result-count {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Tables - clean academic style */
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 24px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table thead {
+            border-top: 2px solid var(--text-primary);
+            border-bottom: 1px solid var(--text-primary);
+        }
+
+        .data-table th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .data-table tbody {
+            border-bottom: 2px solid var(--text-primary);
+        }
+
+        .data-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--highlight);
+        }
+
+        .data-table tbody tr {
+            cursor: pointer;
+        }
+
+        /* Monospace elements */
+        .mono {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.85em;
+        }
+
+        .mag-id {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.85em;
+            color: var(--accent-blue);
+        }
+
+        .gene-id {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.85em;
+            color: var(--accent-red);
+        }
+
+        .numeric {
+            font-family: 'Source Code Pro', monospace;
+            text-align: right;
+        }
+
+        /* Taxonomy display */
+        .taxonomy-abbrev {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .taxonomy-full {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+            word-break: break-word;
+        }
+
+        /* Small inline labels */
+        .label {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .page-btn {
+            padding: 6px 12px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.85rem;
+            background: var(--bg-paper);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--bg-page);
+            border-color: var(--text-primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-btn.active {
+            background: var(--text-primary);
+            color: var(--bg-paper);
+            border-color: var(--text-primary);
+        }
+
+        .page-info {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0 8px;
+            font-style: italic;
+        }
+
+        /* Metabolism pathway cards */
+        .pathway-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .pathway-card {
+            border: 1px solid var(--border-color);
+            padding: 16px;
+        }
+
+        .pathway-card h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .pathway-card .count {
+            font-family: 'Source Code Pro', monospace;
+            color: var(--accent-blue);
+        }
+
+        .pathway-card .desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--border-light);
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--text-primary);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 60px 20px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-paper);
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            font-family: 'Source Code Pro', monospace;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-section {
+            margin-bottom: 24px;
+        }
+
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .detail-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-page);
+            border: 1px solid var(--border-light);
+        }
+
+        .detail-value {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            padding: 4px 10px;
+            background: var(--bg-page);
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: 'Source Code Pro', monospace;
+        }
+
+        .tag:hover {
+            background: var(--highlight);
+        }
+
+        /* Sample list in modal */
+        .sample-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border-light);
+        }
+
+        .sample-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.85rem;
+        }
+
+        .sample-row:last-child {
+            border-bottom: none;
+        }
+
+        .sample-name {
+            flex: 1;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sample-bar {
+            width: 100px;
+            height: 3px;
+            background: var(--border-light);
+            margin: 0 12px;
+        }
+
+        .sample-bar-fill {
+            height: 100%;
+            background: var(--text-primary);
+        }
+
+        .sample-value {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.8rem;
+            width: 70px;
+            text-align: right;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page {
+                padding: 32px 20px;
+            }
+
+            .title-block h1 {
+                font-size: 1.75rem;
+            }
+
+            .stats-panels {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .stat-panel .stat-value {
+                font-size: 2rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pathway-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Figure captions */
+        .figure-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .figure-caption strong {
+            color: var(--text-secondary);
+        }
+
+        /* Visualization containers */
+        .viz-container {
+            margin-bottom: 40px;
+        }
+
+        .viz-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .viz-panel {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+        }
+
+        .viz-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .chart-area {
+            min-height: 200px;
+        }
+
+        .subsection-header {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 32px 0 16px;
+            color: var(--text-secondary);
+        }
+
+        /* Bar chart styles */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+        }
+
+        .bar-label {
+            width: 100px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 14px;
+            background: var(--bg-page);
+            border: 1px solid var(--border-light);
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--text-primary);
+            transition: width 0.3s ease;
+        }
+
+        .bar-value {
+            width: 60px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* Histogram styles */
+        .histogram {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 180px;
+            padding: 0 4px;
+            border-bottom: 1px solid var(--text-primary);
+            border-left: 1px solid var(--text-primary);
+            margin: 0 20px;
+        }
+
+        .hist-bar-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .hist-bar {
+            width: 80%;
+            background: var(--text-primary);
+            min-height: 1px;
+        }
+
+        .hist-label {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            max-height: 50px;
+            overflow: hidden;
+        }
+
+        .hist-count {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .axis-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        /* Heatmap styles */
+        .heatmap-container {
+            overflow-x: auto;
+        }
+
+        .heatmap {
+            display: inline-block;
+            border: 1px solid var(--border-color);
+        }
+
+        .heatmap-row {
+            display: flex;
+        }
+
+        .heatmap-cell {
+            width: 10px;
+            height: 10px;
+            border: 0.5px solid var(--bg-paper);
+        }
+
+        .heatmap-row-label {
+            width: 90px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            text-align: right;
+            padding-right: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 10px;
+        }
+
+        .heatmap-col-labels {
+            display: flex;
+            margin-left: 90px;
+            margin-bottom: 4px;
+        }
+
+        .heatmap-col-label {
+            width: 10px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            height: 60px;
+            overflow: hidden;
+        }
+
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .legend-gradient {
+            width: 120px;
+            height: 12px;
+            background: linear-gradient(to right, #f5f5f5, #1a1a1a);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            .viz-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Title Block -->
+        <header class="title-block">
+            <h1>Metcalf MAG Database Explorer</h1>
+            <p class="subtitle">A Searchable Repository of Metagenome-Assembled Genomes Generated by Metcalf et al. (2024)</p>
+            <div class="metadata">
+                <span>Taxonomy</span>·<span>Abundance</span>·<span>Metabolism</span>
+            </div>
+        </header>
+
+        <!-- Stats Panels -->
+        <div class="stats-panels">
+            <div class="stat-panel">
+                <div class="stat-value" id="total-mags">0</div>
+                <div class="stat-label">MAGs</div>
+            </div>
+            <div class="stat-panel">
+                <div class="stat-value" id="total-samples">0</div>
+                <div class="stat-label">Samples</div>
+            </div>
+            <div class="stat-panel">
+                <div class="stat-value" id="total-genes">0</div>
+                <div class="stat-label">Metabolic Genes</div>
+            </div>
+        </div>
+
+        <!-- Citation -->
+        <div class="citation-block">
+            <div class="citation-label">Source</div>
+            <p class="citation-text">
+                Burcham, Z.M., Belk, A.D., McGivern, B.B. <em>et al.</em> A conserved interdomain microbial network underpins cadaver decomposition despite environmental variables. <em>Nat Microbiol</em> <strong>9</strong>, 595–613 (2024). 
+                <a href="https://doi.org/10.1038/s41564-023-01580-y" target="_blank" rel="noopener">https://doi.org/10.1038/s41564-023-01580-y</a>
+            </p>
+            <p class="citation-context">
+                This MAG library was generated from soils associated with 36 human cadavers at three U.S. anthropological research facilities across temperate and semi-arid climates. The study revealed a universal microbial decomposer network characterized by cross-feeding interactions, with potential forensic applications for estimating postmortem interval.
+            </p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="taxonomy">1. Taxonomy</button>
+            <button class="nav-tab" data-tab="abundance">2. Abundance</button>
+            <button class="nav-tab" data-tab="metabolism">3. Metabolism</button>
+        </nav>
+
+        <!-- Tab Panels -->
+        <main>
+            <!-- Taxonomy Panel -->
+            <section class="tab-panel active" id="panel-taxonomy">
+                <h2 class="section-header"><span class="section-number">1</span> Taxonomic Classification</h2>
+                
+                <div class="controls">
+                    <input type="text" class="search-input" id="taxonomy-search" placeholder="Search by MAG ID, genus, phylum...">
+                    <select class="filter-select" id="phylum-filter">
+                        <option value="">All Phyla</option>
+                    </select>
+                    <span class="result-count" id="taxonomy-count"></span>
+                </div>
+
+                <div class="table-container" id="taxonomy-table">
+                    <div class="loading">Loading taxonomy data...</div>
+                </div>
+            </section>
+
+            <!-- Abundance Panel -->
+            <section class="tab-panel" id="panel-abundance">
+                <h2 class="section-header"><span class="section-number">2</span> Abundance Profiles</h2>
+                
+                <!-- Visualizations -->
+                <div class="viz-container">
+                    <div class="viz-row">
+                        <div class="viz-panel">
+                            <h4 class="viz-title">Top 15 MAGs by Total Abundance</h4>
+                            <div id="top-mags-chart" class="chart-area"></div>
+                            <p class="figure-caption"><strong>Figure 2a.</strong> MAGs ranked by cumulative abundance across all samples.</p>
+                        </div>
+                        <div class="viz-panel">
+                            <h4 class="viz-title">Sample Detection Distribution</h4>
+                            <div id="detection-histogram" class="chart-area"></div>
+                            <p class="figure-caption"><strong>Figure 2b.</strong> Distribution of MAGs by number of samples detected.</p>
+                        </div>
+                    </div>
+                    <div class="viz-panel" style="margin-top: 24px;">
+                        <h4 class="viz-title">Abundance Heatmap (Top 30 MAGs × Top 50 Samples)</h4>
+                        <div id="abundance-heatmap" class="chart-area"></div>
+                        <p class="figure-caption"><strong>Figure 2c.</strong> Relative abundance patterns. Color intensity indicates log₁₀(abundance + 1).</p>
+                    </div>
+                </div>
+
+                <h3 class="subsection-header">2.1 Abundance Table</h3>
+                
+                <div class="controls">
+                    <input type="text" class="search-input" id="abundance-search" placeholder="Search MAGs...">
+                    <select class="filter-select" id="abundance-sort">
+                        <option value="total-desc">Highest Abundance</option>
+                        <option value="total-asc">Lowest Abundance</option>
+                        <option value="samples-desc">Most Samples</option>
+                        <option value="samples-asc">Fewest Samples</option>
+                        <option value="id">MAG ID</option>
+                    </select>
+                    <span class="result-count" id="abundance-count"></span>
+                </div>
+
+                <div class="table-container" id="abundance-table">
+                    <div class="loading">Loading abundance data...</div>
+                </div>
+            </section>
+
+            <!-- Metabolism Panel -->
+            <section class="tab-panel" id="panel-metabolism">
+                <h2 class="section-header"><span class="section-number">3</span> Metabolic Potential</h2>
+                
+                <div class="controls">
+                    <input type="text" class="search-input" id="metabolism-search" placeholder="Search genes, modules, pathways...">
+                    <select class="filter-select" id="pathway-filter">
+                        <option value="">All Pathways</option>
+                    </select>
+                    <span class="result-count" id="metabolism-count"></span>
+                </div>
+
+                <div class="pathway-grid" id="pathway-cards"></div>
+                <p class="figure-caption"><strong>Figure 1.</strong> Distribution of metabolic pathway genes across MAGs.</p>
+
+                <div class="table-container" id="metabolism-table" style="margin-top: 32px;">
+                    <div class="loading">Loading metabolism data...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Details</h2>
+                <button class="modal-close" id="modal-close">×</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data stores
+        let taxonomyData = [];
+        let abundanceData = [];
+        let sampleNames = [];
+        let metabolismData = [];
+        let pathwaySummary = {};
+        let metabolicHeaders = [];
+
+        // Pagination
+        const PAGE_SIZE = 30;
+        let currentPages = { taxonomy: 1, abundance: 1, metabolism: 1 };
+        let rendered = { taxonomy: false, abundance: false, metabolism: false };
+
+        // Initialize
+        async function init() {
+            await loadAllData();
+            setupEventListeners();
+            renderTaxonomyTab();
+            rendered.taxonomy = true;
+            updateStats();
+        }
+
+        async function loadAllData() {
+            const [tax, abund, samples, meta, paths, headers] = await Promise.all([
+                fetch('data/taxonomy_data.json').then(r => r.json()),
+                fetch('data/abundance_data.json').then(r => r.json()),
+                fetch('data/sample_names.json').then(r => r.json()),
+                fetch('data/metabolism_data.json').then(r => r.json()),
+                fetch('data/pathway_summary.json').then(r => r.json()),
+                fetch('data/metabolic_headers.json').then(r => r.json())
+            ]);
+            taxonomyData = tax;
+            abundanceData = abund;
+            sampleNames = samples;
+            metabolismData = meta;
+            pathwaySummary = paths;
+            metabolicHeaders = headers;
+            populateFilters();
+        }
+
+        function updateStats() {
+            animateCounter('total-mags', taxonomyData.length, 1500);
+            animateCounter('total-samples', sampleNames.length, 1500);
+            animateCounter('total-genes', metabolismData.length, 1500);
+        }
+
+        function animateCounter(elementId, target, duration) {
+            const element = document.getElementById(elementId);
+            const startTime = performance.now();
+            const startValue = 0;
+            
+            function easeOutQuart(t) {
+                return 1 - Math.pow(1 - t, 4);
+            }
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easedProgress = easeOutQuart(progress);
+                const currentValue = Math.floor(startValue + (target - startValue) * easedProgress);
+                
+                element.textContent = currentValue.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    element.textContent = target.toLocaleString();
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+
+        function populateFilters() {
+            const phyla = [...new Set(taxonomyData.map(d => d.Phylum).filter(Boolean))].sort();
+            const phylumSelect = document.getElementById('phylum-filter');
+            phyla.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                phylumSelect.appendChild(opt);
+            });
+
+            const pathSelect = document.getElementById('pathway-filter');
+            metabolicHeaders.forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h;
+                opt.textContent = h;
+                pathSelect.appendChild(opt);
+            });
+        }
+
+        function setupEventListeners() {
+            // Tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    const panel = document.getElementById(`panel-${tab.dataset.tab}`);
+                    panel.classList.add('active');
+                    
+                    if (tab.dataset.tab === 'abundance' && !rendered.abundance) {
+                        renderAbundanceTab();
+                        rendered.abundance = true;
+                    } else if (tab.dataset.tab === 'metabolism' && !rendered.metabolism) {
+                        renderMetabolismTab();
+                        rendered.metabolism = true;
+                    }
+                });
+            });
+
+            // Search
+            document.getElementById('taxonomy-search').addEventListener('input', debounce(() => { currentPages.taxonomy = 1; renderTaxonomyTab(); }, 300));
+            document.getElementById('abundance-search').addEventListener('input', debounce(() => { currentPages.abundance = 1; renderAbundanceTab(); }, 300));
+            document.getElementById('metabolism-search').addEventListener('input', debounce(() => { currentPages.metabolism = 1; renderMetabolismTab(); }, 300));
+
+            // Filters
+            document.getElementById('phylum-filter').addEventListener('change', () => { currentPages.taxonomy = 1; renderTaxonomyTab(); });
+            document.getElementById('abundance-sort').addEventListener('change', () => { currentPages.abundance = 1; renderAbundanceTab(); });
+            document.getElementById('pathway-filter').addEventListener('change', () => { currentPages.metabolism = 1; renderMetabolismTab(); });
+
+            // Modal
+            document.getElementById('modal-close').addEventListener('click', closeModal);
+            document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+        }
+
+        function debounce(fn, wait) {
+            let timeout;
+            return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn(...args), wait); };
+        }
+
+        // ============ TAXONOMY ============
+        function renderTaxonomyTab() {
+            const search = document.getElementById('taxonomy-search').value.toLowerCase();
+            const phylum = document.getElementById('phylum-filter').value;
+
+            let data = taxonomyData.filter(d => {
+                const matchSearch = !search || d.MAG_ID.toLowerCase().includes(search) || (d.Full_Taxonomy && d.Full_Taxonomy.toLowerCase().includes(search));
+                const matchPhylum = !phylum || d.Phylum === phylum;
+                return matchSearch && matchPhylum;
+            });
+
+            const total = data.length;
+            const totalPages = Math.ceil(total / PAGE_SIZE);
+            const start = (currentPages.taxonomy - 1) * PAGE_SIZE;
+            const pageData = data.slice(start, start + PAGE_SIZE);
+
+            document.getElementById('taxonomy-count').textContent = `${total} results`;
+
+            document.getElementById('taxonomy-table').innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>MAG ID</th>
+                            <th>Domain</th>
+                            <th>Phylum</th>
+                            <th>Class</th>
+                            <th>Order</th>
+                            <th>Family</th>
+                            <th>Genus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pageData.map(d => `
+                            <tr onclick="showMagDetail('${d.MAG_ID}')">
+                                <td><span class="mag-id">${d.MAG_ID}</span></td>
+                                <td>${d.Domain || '—'}</td>
+                                <td>${d.Phylum || '—'}</td>
+                                <td>${d.Class || '—'}</td>
+                                <td>${d.Order || '—'}</td>
+                                <td>${d.Family || '—'}</td>
+                                <td><em>${d.Genus || '—'}</em></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ${pagination('taxonomy', currentPages.taxonomy, totalPages)}
+            `;
+        }
+
+        // ============ ABUNDANCE ============
+        function renderAbundanceTab() {
+            // Render visualizations first
+            renderAbundanceVisualizations();
+            
+            const search = document.getElementById('abundance-search').value.toLowerCase();
+            const sort = document.getElementById('abundance-sort').value;
+
+            let data = abundanceData.filter(d => !search || d.MAG_ID.toLowerCase().includes(search) || (d.Taxonomy && d.Taxonomy.toLowerCase().includes(search)));
+
+            data.sort((a, b) => {
+                switch(sort) {
+                    case 'total-desc': return b.total_abundance - a.total_abundance;
+                    case 'total-asc': return a.total_abundance - b.total_abundance;
+                    case 'samples-desc': return b.samples_detected - a.samples_detected;
+                    case 'samples-asc': return a.samples_detected - b.samples_detected;
+                    default: return a.MAG_ID.localeCompare(b.MAG_ID);
+                }
+            });
+
+            const maxAbund = Math.max(...abundanceData.map(d => d.total_abundance));
+            const total = data.length;
+            const totalPages = Math.ceil(total / PAGE_SIZE);
+            const start = (currentPages.abundance - 1) * PAGE_SIZE;
+            const pageData = data.slice(start, start + PAGE_SIZE);
+
+            document.getElementById('abundance-count').textContent = `${total} results`;
+
+            document.getElementById('abundance-table').innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>MAG ID</th>
+                            <th>Taxonomy</th>
+                            <th style="text-align:right">Samples</th>
+                            <th style="text-align:right">Total Abundance</th>
+                            <th style="text-align:right">Mean</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pageData.map(d => {
+                            const taxShort = d.Taxonomy ? d.Taxonomy.split(';').slice(1, 3).map(t => t.split('__')[1]).filter(Boolean).join('; ') : '—';
+                            const mean = d.samples_detected > 0 ? (d.total_abundance / d.samples_detected) : 0;
+                            return `
+                            <tr onclick="showAbundanceDetail('${d.MAG_ID}')">
+                                <td><span class="mag-id">${d.MAG_ID}</span></td>
+                                <td class="taxonomy-abbrev" title="${d.Taxonomy || ''}">${taxShort}</td>
+                                <td class="numeric">${d.samples_detected}</td>
+                                <td class="numeric">${formatNum(d.total_abundance)}</td>
+                                <td class="numeric">${formatNum(mean)}</td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+                ${pagination('abundance', currentPages.abundance, totalPages)}
+            `;
+        }
+
+        function renderAbundanceVisualizations() {
+            // Top MAGs bar chart
+            const topMags = [...abundanceData]
+                .sort((a, b) => b.total_abundance - a.total_abundance)
+                .slice(0, 15);
+            const maxAbund = topMags[0]?.total_abundance || 1;
+
+            document.getElementById('top-mags-chart').innerHTML = `
+                <div class="bar-chart">
+                    ${topMags.map(d => `
+                        <div class="bar-row">
+                            <span class="bar-label" title="${d.MAG_ID}">${d.MAG_ID}</span>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: ${(d.total_abundance / maxAbund * 100).toFixed(1)}%"></div>
+                            </div>
+                            <span class="bar-value">${formatNum(d.total_abundance)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Detection distribution histogram
+            const bins = [
+                { label: '1-10', min: 1, max: 10 },
+                { label: '11-50', min: 11, max: 50 },
+                { label: '51-100', min: 51, max: 100 },
+                { label: '101-200', min: 101, max: 200 },
+                { label: '201-300', min: 201, max: 300 },
+                { label: '301-400', min: 301, max: 400 },
+                { label: '401-500', min: 401, max: 500 },
+                { label: '500+', min: 501, max: Infinity }
+            ];
+
+            bins.forEach(bin => {
+                bin.count = abundanceData.filter(d => d.samples_detected >= bin.min && d.samples_detected <= bin.max).length;
+            });
+
+            const maxCount = Math.max(...bins.map(b => b.count));
+
+            document.getElementById('detection-histogram').innerHTML = `
+                <div class="histogram">
+                    ${bins.map(bin => `
+                        <div class="hist-bar-container">
+                            <span class="hist-count">${bin.count}</span>
+                            <div class="hist-bar" style="height: ${maxCount > 0 ? (bin.count / maxCount * 150) : 0}px"></div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="display: flex; justify-content: space-around; margin: 4px 20px 0;">
+                    ${bins.map(bin => `<span style="font-size: 0.65rem; color: var(--text-muted); font-family: 'Source Code Pro', monospace;">${bin.label}</span>`).join('')}
+                </div>
+                <p class="axis-label">Number of Samples Detected</p>
+            `;
+
+            // Heatmap - top 30 MAGs x top 50 samples
+            renderHeatmap();
+        }
+
+        function renderHeatmap() {
+            const topMags = [...abundanceData]
+                .sort((a, b) => b.total_abundance - a.total_abundance)
+                .slice(0, 30);
+
+            // Find top samples by total abundance across top MAGs
+            const sampleTotals = {};
+            topMags.forEach(mag => {
+                Object.entries(mag.abundances).forEach(([sample, val]) => {
+                    sampleTotals[sample] = (sampleTotals[sample] || 0) + val;
+                });
+            });
+
+            const topSamples = Object.entries(sampleTotals)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 50)
+                .map(([s]) => s);
+
+            // Calculate max for color scaling (using log scale)
+            let maxVal = 0;
+            topMags.forEach(mag => {
+                topSamples.forEach(sample => {
+                    const val = mag.abundances[sample] || 0;
+                    if (val > maxVal) maxVal = val;
+                });
+            });
+
+            const logMax = Math.log10(maxVal + 1);
+
+            // Generate heatmap
+            function getColor(val) {
+                if (val === 0) return '#f5f5f5';
+                const logVal = Math.log10(val + 1);
+                const intensity = logVal / logMax;
+                const gray = Math.round(245 - (intensity * 219)); // 245 to 26
+                return `rgb(${gray}, ${gray}, ${gray})`;
+            }
+
+            const heatmapHTML = `
+                <div class="heatmap-container">
+                    <div class="heatmap-col-labels">
+                        ${topSamples.map(s => `<div class="heatmap-col-label" title="${s}">${s.split('.').slice(-2).join('.')}</div>`).join('')}
+                    </div>
+                    <div class="heatmap">
+                        ${topMags.map(mag => `
+                            <div class="heatmap-row">
+                                <span class="heatmap-row-label" title="${mag.MAG_ID}">${mag.MAG_ID}</span>
+                                ${topSamples.map(sample => {
+                                    const val = mag.abundances[sample] || 0;
+                                    return `<div class="heatmap-cell" style="background: ${getColor(val)}" title="${mag.MAG_ID}\n${sample}\n${formatNum(val)}"></div>`;
+                                }).join('')}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="heatmap-legend">
+                        <span>0</span>
+                        <div class="legend-gradient"></div>
+                        <span>${formatNum(maxVal)}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('abundance-heatmap').innerHTML = heatmapHTML;
+        }
+
+        // ============ METABOLISM ============
+        function renderMetabolismTab() {
+            renderPathwayCards();
+
+            const search = document.getElementById('metabolism-search').value.toLowerCase();
+            const pathFilter = document.getElementById('pathway-filter').value;
+
+            let data = metabolismData.filter(d => {
+                const matchSearch = !search || d.gene_id.toLowerCase().includes(search) || d.gene_description.toLowerCase().includes(search) || d.module.toLowerCase().includes(search);
+                const matchPath = !pathFilter || d.header === pathFilter;
+                return matchSearch && matchPath;
+            });
+
+            const total = data.length;
+            const totalPages = Math.ceil(total / PAGE_SIZE);
+            const start = (currentPages.metabolism - 1) * PAGE_SIZE;
+            const pageData = data.slice(start, start + PAGE_SIZE);
+
+            document.getElementById('metabolism-count').textContent = `${total} results`;
+
+            document.getElementById('metabolism-table').innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Gene ID</th>
+                            <th>Description</th>
+                            <th>Module</th>
+                            <th>Pathway</th>
+                            <th style="text-align:right">MAGs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pageData.map((d, i) => `
+                            <tr onclick="showGeneDetail(${metabolismData.indexOf(d)})">
+                                <td><span class="gene-id">${d.gene_id}</span></td>
+                                <td title="${d.gene_description}">${truncate(d.gene_description, 45)}</td>
+                                <td><span class="label">${truncate(d.module, 30)}</span></td>
+                                <td>${d.header}</td>
+                                <td class="numeric">${d.mags_with_gene}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ${pagination('metabolism', currentPages.metabolism, totalPages)}
+            `;
+        }
+
+        function renderPathwayCards() {
+            const stats = {};
+            const magCount = Object.keys(pathwaySummary).length;
+            
+            for (const [mag, pathways] of Object.entries(pathwaySummary)) {
+                for (const [pathway, s] of Object.entries(pathways)) {
+                    if (!stats[pathway]) stats[pathway] = { present: 0, mags: 0 };
+                    stats[pathway].present += s.present;
+                    if (s.present > 0) stats[pathway].mags++;
+                }
+            }
+
+            document.getElementById('pathway-cards').innerHTML = Object.entries(stats)
+                .sort((a, b) => b[1].mags - a[1].mags)
+                .map(([path, s]) => `
+                    <div class="pathway-card">
+                        <h4>${path}</h4>
+                        <div><span class="count">${s.mags}</span> MAGs with pathway genes</div>
+                        <div class="desc">${formatNum(s.present)} total gene copies</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${(s.mags/magCount*100).toFixed(0)}%"></div></div>
+                    </div>
+                `).join('');
+        }
+
+        // ============ PAGINATION ============
+        function pagination(tab, current, total) {
+            if (total <= 1) return '';
+            let pages = [];
+            const max = 5;
+            let start = Math.max(1, current - Math.floor(max/2));
+            let end = Math.min(total, start + max - 1);
+            if (end - start < max - 1) start = Math.max(1, end - max + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+
+            return `
+                <div class="pagination">
+                    <button class="page-btn" onclick="goPage('${tab}',1)" ${current===1?'disabled':''}>«</button>
+                    <button class="page-btn" onclick="goPage('${tab}',${current-1})" ${current===1?'disabled':''}>‹</button>
+                    ${pages.map(p => `<button class="page-btn ${p===current?'active':''}" onclick="goPage('${tab}',${p})">${p}</button>`).join('')}
+                    <button class="page-btn" onclick="goPage('${tab}',${current+1})" ${current===total?'disabled':''}>›</button>
+                    <button class="page-btn" onclick="goPage('${tab}',${total})" ${current===total?'disabled':''}>»</button>
+                    <span class="page-info">Page ${current} of ${total}</span>
+                </div>
+            `;
+        }
+
+        function goPage(tab, page) {
+            currentPages[tab] = page;
+            if (tab === 'taxonomy') renderTaxonomyTab();
+            else if (tab === 'abundance') renderAbundanceTab();
+            else renderMetabolismTab();
+        }
+
+        // ============ MODALS ============
+        function showMagDetail(magId) {
+            const tax = taxonomyData.find(d => d.MAG_ID === magId);
+            const abund = abundanceData.find(d => d.MAG_ID === magId);
+            
+            const magMeta = {};
+            metabolismData.forEach(g => {
+                if (g.presence[magId]) {
+                    if (!magMeta[g.header]) magMeta[g.header] = [];
+                    magMeta[g.header].push(g);
+                }
+            });
+
+            let html = `
+                <div class="modal-section">
+                    <h3>Taxonomy</h3>
+                    <p class="taxonomy-full">${tax?.Full_Taxonomy || 'Not available'}</p>
+                </div>
+            `;
+
+            if (abund) {
+                html += `
+                    <div class="modal-section">
+                        <h3>Abundance</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-value">${abund.samples_detected}</div>
+                                <div class="detail-label">Samples</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-value">${formatNum(abund.total_abundance)}</div>
+                                <div class="detail-label">Total</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-value">${formatNum(abund.total_abundance / abund.samples_detected)}</div>
+                                <div class="detail-label">Mean</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (Object.keys(magMeta).length > 0) {
+                html += `
+                    <div class="modal-section">
+                        <h3>Metabolic Pathways</h3>
+                        <div class="tag-list">
+                            ${Object.entries(magMeta).map(([p, genes]) => `<span class="tag">${p} (${genes.length})</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('modal-title').textContent = magId;
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function showAbundanceDetail(magId) {
+            const d = abundanceData.find(x => x.MAG_ID === magId);
+            if (!d) return;
+
+            const sorted = Object.entries(d.abundances).sort((a,b) => b[1] - a[1]).slice(0, 25);
+            const max = sorted.length > 0 ? sorted[0][1] : 1;
+
+            const html = `
+                <div class="modal-section">
+                    <h3>Summary</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-value">${d.samples_detected}</div>
+                            <div class="detail-label">Samples</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value">${formatNum(d.total_abundance)}</div>
+                            <div class="detail-label">Total</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-value">${formatNum(d.total_abundance / d.samples_detected)}</div>
+                            <div class="detail-label">Mean</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h3>Top ${sorted.length} Samples</h3>
+                    <div class="sample-list">
+                        ${sorted.map(([s, v]) => `
+                            <div class="sample-row">
+                                <span class="sample-name" title="${s}">${s}</span>
+                                <div class="sample-bar"><div class="sample-bar-fill" style="width:${(v/max*100).toFixed(0)}%"></div></div>
+                                <span class="sample-value">${formatNum(v)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-title').textContent = magId;
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function showGeneDetail(index) {
+            const g = metabolismData[index];
+            if (!g) return;
+
+            const mags = Object.keys(g.presence).sort();
+
+            const html = `
+                <div class="modal-section">
+                    <h3>Description</h3>
+                    <p>${g.gene_description || '—'}</p>
+                </div>
+                <div class="modal-section">
+                    <h3>Classification</h3>
+                    <p><strong>Module:</strong> ${g.module || '—'}</p>
+                    <p><strong>Pathway:</strong> ${g.header}</p>
+                </div>
+                <div class="modal-section">
+                    <h3>Present in ${mags.length} MAGs</h3>
+                    <div class="tag-list">
+                        ${mags.map(m => `<span class="tag" onclick="closeModal();showMagDetail('${m}')">${m}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-title').textContent = g.gene_id;
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // ============ HELPERS ============
+        function formatNum(n) {
+            if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+            if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+            return n % 1 === 0 ? n.toString() : n.toFixed(2);
+        }
+
+        function truncate(s, len) {
+            return s && s.length > len ? s.slice(0, len) + '…' : (s || '—');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
